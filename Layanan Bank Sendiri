@@ -1,0 +1,299 @@
+from prettytable import PrettyTable
+
+class Graph:
+    def __init__(self):
+        self._graph = {}
+    def add_node(self, node):
+        if node not in self._graph:
+            self._graph[node] = {}
+    def add_edge(self, from_node, to_node, weight):
+        if from_node in self._graph and to_node in self._graph:
+            self._graph[from_node][to_node] = weight
+    def get_weight(self, node):
+        return sum(self._graph[node].values()) if node in self._graph else 0
+
+class TreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+    def add_child(self, child):
+        self.children.append(child)
+    def display(self, level=0):
+        print(" " * level * 4 + f"- {self.value}")
+        for child in self.children:
+            child.display(level + 1)
+
+class KepentinganTree:
+    def __init__(self):
+        self.root = TreeNode("Kepentingan Layanan")
+    def add_kepentingan(self, kategori, layanan):
+        kategori_node = self._find_or_add(self.root, kategori)
+        kategori_node.add_child(TreeNode(layanan))
+    def _find_or_add(self, parent, value):
+        for child in parent.children:
+            if child.value == value:
+                return child
+        new_node = TreeNode(value)
+        parent.add_child(new_node)
+        return new_node
+    def display(self):
+        self.root.display()
+
+class Node:
+    def __init__(self, antrian, nama, layanan):
+        self._antrian = antrian
+        self._nama = nama
+        self._layanan = layanan
+        self._next = None
+
+class LinkedList:
+    def __init__(self):
+        self._head = None
+        self._tail = None
+        self._called = []
+        self._last_teller = 0
+        self._last_cs = 0
+
+    def tampilkan_antrian(self):
+        antrian_teller = []
+        antrian_cs = []
+        a = self._head
+        while a is not None:
+            if a._layanan == "Teller":
+                antrian_teller.append([a._antrian, a._nama, a._layanan])
+            else:
+                antrian_cs.append([a._antrian, a._nama, a._layanan])
+            a = a._next
+
+        print("\nAntrian Teller :")
+        if antrian_teller:
+            table_teller = PrettyTable(["Nomor Antrian", "Nama", "Layanan"])
+            for item in antrian_teller:
+                table_teller.add_row(item)
+            print(table_teller)
+        else:
+            print("Tidak ada antrian di Teller.")
+
+        print("\nAntrian Customer Service :")
+        if antrian_cs:
+            table_cs = PrettyTable(["Nomor Antrian", "Nama", "Layanan"])
+            for item in antrian_cs:
+                table_cs.add_row(item)
+            print(table_cs)
+        else:
+            print("Tidak ada antrian di Customer Service.")
+
+    def quick_sort(self):
+        if self._head is None or self._head._next is None:
+            return
+        
+        def get_antrian_number(antrian):
+            return int(antrian[1:])
+
+        def partition(start, end):
+            pivot = start
+            current = start
+            while current != end:
+                if get_antrian_number(current._antrian) < get_antrian_number(pivot._antrian):
+                    current._antrian, start._antrian = start._antrian, current._antrian
+                    current._nama, start._nama = start._nama, current._nama
+                    current._layanan, start._layanan = start._layanan, current._layanan
+                current = current._next
+            start._antrian, pivot._antrian = pivot._antrian, start._antrian
+            start._nama, pivot._nama = pivot._nama, start._nama
+            start._layanan, pivot._layanan = pivot._layanan, start._layanan
+            return pivot
+
+        def quick_sort_rec(start, end):
+            if start == end:
+                return
+            pivot = partition(start, end)
+            quick_sort_rec(start, pivot)
+            quick_sort_rec(pivot._next, end)
+        
+        quick_sort_rec(self._head, self._tail)
+
+    def enqueue(self, nama, layanan, antrian=None):
+        if antrian is None:
+            if layanan == "Teller":
+                self._last_teller += 1
+                antrian = f"A{self._last_teller}"
+            elif layanan == "Customer Service":
+                self._last_cs += 1
+                antrian = f"B{self._last_cs}"
+
+        a = Node(antrian, nama, layanan)
+        if self._head is None:
+            self._head = self._tail = a
+        else: 
+            self._tail._next = a
+            self._tail = a
+        
+        self.quick_sort()
+        print(f"Pengunjung dengan antrian {antrian} berhasil ditambahkan!")
+
+    def linear_search(self, antrian):
+        a = self._head
+        while a is not None:
+            if a._antrian == antrian:
+                return f"Nomor antrian {a._antrian} atas nama {a._nama} dengan layanan {a._layanan} ditemukan"
+            a = a._next
+        return f"Nomor antrian {antrian} tidak ditemukan"
+
+    def dequeue(self):
+        if self._head is None:
+            print("Tidak ada antrian pengunjung")
+            return None
+        pengunjung = self._head
+        self._head = self._head._next
+        if self._head is None:
+            self._tail = None
+        self._called.append(pengunjung)
+        print(f"Pengunjung dengan antrian {pengunjung._antrian} ({pengunjung._nama}) telah dipanggil")
+        return pengunjung
+
+    def rekap_antrian(self):
+        graph = Graph()
+        graph.add_node("Teller")
+        graph.add_node("Customer Service")
+
+        teller_count = 0
+        cs_count = 0
+
+        belum_terpanggil = []
+        a = self._head
+        while a is not None:
+            if a._layanan == "Teller":
+                teller_count += 1
+            elif a._layanan == "Customer Service":
+                cs_count += 1
+            belum_terpanggil.append((a._antrian, a._nama, a._layanan))
+            a = a._next
+
+        sudah_terpanggil = [(x._antrian, x._nama, x._layanan) for x in self._called]
+
+        graph.add_edge("Teller", "Customer Service", cs_count)
+        graph.add_edge("Customer Service", "Teller", teller_count)
+
+        print("\nRekap Antrian:")
+
+        print("\nAntrian yang sudah terpanggil:")
+        table_sudah = PrettyTable(["Nomor Antrian", "Nama", "Layanan"])
+        for item in sudah_terpanggil:
+            table_sudah.add_row(item)
+        print(table_sudah)
+        print(f"\nJumlah antrian yang sudah terpanggil: {len(sudah_terpanggil)}")
+
+        print("\nAntrian yang belum terpanggil:")
+        table_belum = PrettyTable(["Nomor Antrian", "Nama", "Layanan"])
+        for item in belum_terpanggil:
+            table_belum.add_row(item)
+        print(table_belum)
+        print(f"\nJumlah antrian yang belum terpanggil: {len(belum_terpanggil)}")
+
+        print(f"\nJumlah pengunjung Teller: {teller_count}")
+        print(f"Jumlah pengunjung Customer Service: {cs_count}")
+
+def pilih_kepentingan():
+    print("\nPilih Kepentingan:")
+    print("1. Setor Tunai")
+    print("2. Penarikan Uang")
+    print("3. Cek Saldo")
+    print("4. Layanan Produk")
+    print("5. Pembukaan Rek. Baru")
+    print("6. Tentang ATM")
+    
+    while True:
+            pilihan = int(input("\nMasukkan nomor kepentingan: "))
+            if 1 <= pilihan <= 3:
+                return "Teller"
+            elif 4 <= pilihan <= 6:
+                return "Customer Service"
+            else:
+                print("Pilihan tidak valid! Masukkan antara 1 sampai 6.")
+
+kepentingan_tree = KepentinganTree()
+kepentingan_tree.add_kepentingan("Setor Tunai", "Teller")
+kepentingan_tree.add_kepentingan("Penarikan Uang", "Teller")
+kepentingan_tree.add_kepentingan("Cek Saldo", "Teller")
+kepentingan_tree.add_kepentingan("Layanan Produk", "Customer Service")
+kepentingan_tree.add_kepentingan("Pembukaan Rek. Baru", "Customer Service")
+kepentingan_tree.add_kepentingan("Tentang ATM", "Customer Service")
+
+antrian = LinkedList()
+data_antrian = [
+    ("Fadhilah", "Teller"),
+    ("Alif", "Customer Service"),
+    ("Andina", "Customer Service"),
+    ("Zaki", "Teller"),
+    ("Abiyyus", "Teller"),
+    ("Singgih", "Teller"),
+    ("Haris", "Customer Service"),
+    ("Aufal", "Customer Service"),
+    ("Dhani", "Teller"),
+    ("Fathur", "Teller"),
+    ("Derry", "Customer Service"),
+    ("Aziz", "Teller"),
+    ("Dayu", "Teller"),
+    ("Nandhita", "Teller"),
+    ("Ibnu", "Customer Service"),
+    ("Usdan", "Customer Service"),
+    ("Fauzan", "Teller"),
+    ("Alfan", "Customer Service"),
+    ("Aura", "Teller"),
+    ("Aulia", "Teller"),
+    ("Vanissa", "Customer Service"),
+    ("Jofan", "Teller"),
+    ("Sandy", "Customer Service"),
+    ("Johan", "Customer Service"),
+    ("Rizki", "Customer Service"),
+    ("Rendy", "Teller"),
+    ("Rizky", "Teller"),
+    ("Yahya", "Teller"),
+    ("Khairil", "Teller"),
+    ("Junaidy", "Customer Service"),
+    ("Galang", "Customer Service"),
+    ("Naufaldi", "Teller"),
+    ("Intan", "Customer Service"),
+]
+for data in data_antrian:
+    antrian.enqueue(*data)
+
+def menu():
+    while True:
+        print('-'*40)
+        print("LAYANAN BANK SENDIRI".center(40, ' ')) 
+        print('-'*40)
+        print("1. Menampilkan Antrian")
+        print("2. Menambah Antrian")
+        print("3. Mencari Antrian")
+        print("4. Memanggil Antrian")
+        print("5. Rekap Antrian")
+        print("6. Keluar")
+
+        pilihan = input("\nMasukkan angka menu yang dipilih : ")
+
+        if pilihan == "1":
+            antrian.tampilkan_antrian()
+        elif pilihan == "2":
+            nama_input = input("Masukkan Nama                                : ")
+            layanan_input = pilih_kepentingan()
+            antrian.enqueue(nama_input, layanan_input)
+            print("\nData antrian terbaru :")
+            antrian.tampilkan_antrian()
+        elif pilihan == "3":
+            antrian_input = input("Masukkan Nomor Antrian yang ingin dicari : ")
+            print(antrian.linear_search(antrian_input))
+        elif pilihan == "4":
+            antrian.dequeue()
+            print("\nData antrian terbaru setelah pemanggilan :")
+            antrian.tampilkan_antrian()
+        elif pilihan == "5":
+            antrian.rekap_antrian()
+        elif pilihan == "6":
+            print("Terima kasih")
+            break
+        else:
+            print("Pilihan tidak valid, silakan coba lagi.")
+            print('-'*40)
+menu()
